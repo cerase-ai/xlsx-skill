@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "namespace": "studio.guidance",
+  "name": "xlsx",
+  "type": "skill",
+  "display_name": "Xlsx",
+  "description": "Crea un foglio Excel (.xlsx) con dati, formule, grafici; variante ODS / Google Sheet. Delegata da `source-to-artifact` quando il target è tabellare.",
+  "license": "MIT"
+}
