@@ -1,7 +1,6 @@
 ---
-slug: xlsx
+name: xlsx
 description: "Crea un foglio Excel (.xlsx) con dati, formule, grafici; variante ODS / Google Sheet. Delegata da `source-to-artifact` quando il target è tabellare."
-is_core: true
 ---
 # XLSX — Excel / spreadsheet creation
 
