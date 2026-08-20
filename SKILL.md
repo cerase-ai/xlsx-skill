@@ -1,6 +1,6 @@
 ---
 name: xlsx
-description: "Crea un foglio Excel (.xlsx) con dati, formule, grafici; variante ODS / Google Sheet. Delegata da `source-to-artifact` quando il target è tabellare."
+description: "Creates an Excel workbook (.xlsx) with data, formulas and charts; ODS / Google Sheet variant. Delegated to by `source-to-artifact` when the target is tabular."
 ---
 # XLSX — Excel / spreadsheet creation
 
