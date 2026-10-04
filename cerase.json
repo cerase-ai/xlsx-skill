@@ -4,6 +4,6 @@
   "name": "xlsx",
   "type": "skill",
   "display_name": "Xlsx",
-  "description": "Creates an Excel workbook (.xlsx) with data, formulas and charts; ODS / Google Sheet variant. Delegated to by `source-to-artifact` when the target is tabular.",
+  "description": "Creates an Excel workbook (.xlsx) with data and formulas, or an OpenDocument (.ods) or Google Sheet version of it. Delegated to by `source-to-artifact` when the target is a table: a report, a data summary, a financial model, a list with totals.",
   "license": "MIT"
 }

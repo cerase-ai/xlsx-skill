@@ -1,74 +1,72 @@
 ---
 name: xlsx
-description: "Creates an Excel workbook (.xlsx) with data, formulas and charts; ODS / Google Sheet variant. Delegated to by `source-to-artifact` when the target is tabular."
+description: "Creates an Excel workbook (.xlsx) with data and formulas, or an OpenDocument (.ods) or Google Sheet version of it. Delegated to by `source-to-artifact` when the target is a table: a report, a data summary, a financial model, a list with totals."
 ---
-# XLSX — Excel / spreadsheet creation
+# XLSX — Excel workbooks
 
-Create `.xlsx` Excel spreadsheets (or .ods / Google Sheet variant) from tabular content. Invoked by `source-to-artifact` when the user wants a spreadsheet — typical asks: report builder, data summary, financial model, list with formulas.
+You hand the office converter the rows, and it builds the workbook. Your container runs no Python, so you never build the file yourself: the converter does.
 
 ## Inputs
 
-From the caller:
-- **data source**: workspace CSV / TSV / JSON / pasted table, OR structured data extracted from a document
-- **target format**: `xlsx` (Excel native), `ods` (LibreOffice), `gsheet` (Google Sheet)
-- **filename**: e.g. `q3-sales.xlsx`
-- **sheets**: optional; if multiple sheets, structure per-sheet
+From the caller, or from the person:
+- **data**: a CSV, TSV or JSON file in the workspace, a table pasted in the chat, or figures taken from a document
+- **format**: `xlsx` (Excel), `ods` (LibreOffice) or `gsheet` (Google Sheet)
+- **file name**: such as `q3-sales.xlsx`
+- **sheets**: one, or one per logical group (a month, a region)
 
-## Backend per format
-
-### `xlsx` (native, fast)
-
-Use openpyxl in the workspace:
-
-```python
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
-wb = Workbook()
-ws = wb.active
-ws.title = '<sheet name>'
-ws.append([header1, header2, header3])
-for h in ws[1]: h.font = Font(bold=True)  # bold header
-for row in rows: ws.append(row)
-# Formula example:
-ws['D2'] = '=SUM(B2:C2)'
-# Column widths:
-ws.column_dimensions['A'].width = 25
-wb.save('<filename>.xlsx')
-```
-
-For multiple sheets: `wb.create_sheet('<name>')`.
-
-Write to workspace. Attach to reply.
-
-### `ods` (via cerase-office-converter)
-
-Create `.xlsx` natively, then:
+## Build the workbook
 
 ```
-call_recipe("cerase-office-converter.convert_xlsx_to_ods", {input_b64: <base64 of .xlsx>})
-```
-
-### `gsheet` (via google-workspace MCP)
-
-```
-call_recipe("google-workspace.sheets_create", {
-  title: "<filename without ext>",
-  data: [[<row 1 cells>], [<row 2 cells>], ...],
+call_recipe("cerase-office-converter.create_xlsx", {
+  "output_filename": "q3-sales.xlsx",
+  "sheets": [
+    {
+      "name": "Sales",
+      "rows": [
+        ["Region", "Q1", "Q2", "Total"],
+        ["North", 1200.5, 1350, "=SUM(B2:C2)"],
+        ["South", 980, 1010, "=SUM(B3:C3)"],
+        ["Total", "=SUM(B2:B3)", "=SUM(C2:C3)", "=SUM(D2:D3)"]
+      ],
+      "number_formats": {"B": "#,##0.00 \"€\"", "C": "#,##0.00 \"€\"", "D": "#,##0.00 \"€\""},
+      "column_widths": {"A": 18}
+    }
+  ]
 })
 ```
 
-Returns `{sheet_id, sheet_url}`. Surface URL.
+It answers `{path, filename, size_bytes}`: the workbook is in your workspace at `path`, which is `outputs/<file name>`.
 
-## Best practices
+What each sheet takes:
+- `name`: at most 31 characters, none of `[ ] : * ? / \`, different from every other sheet's.
+- `rows`: top to bottom. Numbers go in as numbers, never as strings, so a formula can add them up. A string starting with `=` is a formula. A `YYYY-MM-DD` string is stored as a date. `null` leaves a cell empty.
+- `header_rows`: how many top rows are the header, bold, shaded and frozen at the top. Default 1; 0 for none.
+- `number_formats`: an Excel format per column letter, applied below the header: `#,##0.00 "€"` for money, `0.0%` for a share, `yyyy-mm-dd` for a date.
+- `column_widths`: width per column letter. A column not named is sized to its content.
+- `freeze`: the cell to freeze panes at, when it is not the first cell under the header.
 
-- **Header row always styled**: bold + background fill + frozen pane (openpyxl `ws.freeze_panes = 'A2'`).
-- **Formulas, not hardcoded values**: when summing / averaging / comparing, use `=SUM(...)` etc. The user can extend.
-- **Number formatting**: dates as `YYYY-MM-DD`, currency with explicit symbol + 2 decimals (`#,##0.00 "€"`), percentages with 1 decimal (`0.0%`).
-- **Multiple sheets**: use when the data has logical groupings (e.g. per-month, per-region). Avoid stuffing everything in one wide sheet.
-- **Chart**: don't add unless explicitly asked — charts are fragile across export targets (ODS/Google handle them differently). If asked, use openpyxl `BarChart` / `LineChart` / `PieChart`.
+## Other formats
+
+- **ods**: `call_recipe("cerase-office-converter.convert_xlsx_to_ods", {"path": "outputs/<name>.xlsx", "output_filename": "<name>.ods"})`
+- **PDF** of the table: `call_recipe("cerase-office-converter.convert_xlsx_to_pdf", {"path": "outputs/<name>.xlsx", "output_filename": "<name>.pdf"})`
+- **gsheet** (Google Sheet): build the .xlsx, then upload it converted:
+  `call_recipe("google-workspace.uploadFile", {"localPath": "outputs/<name>.xlsx", "name": "<title>", "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "convertToGoogleFormat": true})`
+  The answer carries the new file's `Link:`; give the person that link. If the Google Workspace connector is not among your connectors, say in their language that a Google Sheet needs that connector, which the organisation's admin assigns, and send the .xlsx instead.
+
+These calls are the complete set. Do not invent others.
+
+## Deliver
+
+Attach the file: `[[attach: outputs/<name>.xlsx]]`. Never paste its content or any base64 in the chat.
+
+## Rules
+
+- **Formulas, not computed values**: a total, an average or a difference is a formula, so the person can change a figure and see the result follow.
+- **One header row**, then data. No title rows above the header: the sheet name is the title.
+- **Several sheets** when the data has natural groups; never one sheet a hundred columns wide.
+- **No chart**: the workbook carries the numbers.
 
 ## Don't
 
-- Don't write column widths blindly: estimate from content length (~1.2 char per width unit).
-- Don't fabricate data: if a cell is unknown, leave it blank + add a note in a `_notes` column.
-- Don't ignore the `cerase-office-converter` for cross-format — handles edge cases (frozen panes, conditional formatting) correctly during conversion.
+- Don't write Python, or call `libreoffice` from bash: neither is in your container.
+- Don't invent data: a value you do not know stays empty, with a `Note` column saying what is missing.

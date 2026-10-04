@@ -6,4 +6,4 @@
 # of the bundle that ships to the agent.
 it:
   display_name: "Xlsx"
-  description: "Crea un foglio Excel (.xlsx) con dati, formule, grafici; variante ODS / Google Sheet. Delegata da `source-to-artifact` quando il target è tabellare."
+  description: "Crea una cartella di lavoro Excel (.xlsx) con dati e formule, o una sua versione OpenDocument (.ods) o Google Sheet. Viene richiamata da `source-to-artifact` quando il risultato è una tabella: un report, un riepilogo di dati, un modello finanziario, un elenco con totali."

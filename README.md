@@ -1,35 +1,47 @@
 # xlsx-skill
 
 A Cerase skill that has the assistant produce a spreadsheet: an Excel workbook
-(`.xlsx`), an OpenDocument spreadsheet (`.ods`) or a Google Sheet, with data,
-formulas and, when asked, charts. `source-to-artifact` calls it when the target
-is tabular, for example a report, a data summary, a financial model or a list
-with formulas. The caller passes the data (a CSV, TSV or JSON file in the
-workspace, a pasted table, or data extracted from a document), the target
-format, the file name and, optionally, how to split it into sheets.
+(`.xlsx`), an OpenDocument spreadsheet (`.ods`) or a Google Sheet, with data
+and formulas. `source-to-artifact` calls it when the target is a table, for
+example a report, a data summary, a financial model or a list with totals.
+The caller passes the data (a CSV, TSV or JSON file in the workspace, a pasted
+table, or data extracted from a document), the target format, the file name
+and, optionally, how to split it into sheets.
 
 ## What the assistant does
 
-- **`xlsx`:** writes a script with `openpyxl` (header row, data rows, formulas,
-  column widths, one sheet per logical group), saves the file in the workspace
-  and attaches it to the reply.
+- **`xlsx`:** calls `cerase-office-converter.create_xlsx` with the rows of
+  each sheet (numbers as numbers, formulas as strings starting with `=`, dates
+  as `YYYY-MM-DD` strings) and, per sheet, the number of header rows, an Excel
+  number format per column, column widths and the cell to freeze panes at. The
+  converter writes the workbook to `outputs/` in the workspace and returns its
+  path, and the assistant attaches it with `[[attach: <path>]]`.
 - **`ods`:** builds the `.xlsx` first, then converts it with
   `cerase-office-converter.convert_xlsx_to_ods`.
-- **`gsheet`:** calls `google-workspace.sheets_create` with the title and the
-  rows, and returns the link.
+- **PDF of the table:** builds the `.xlsx` first, then converts it with
+  `cerase-office-converter.convert_xlsx_to_pdf`.
+- **`gsheet`:** builds the `.xlsx`, uploads it to the person's Drive with
+  `google-workspace.uploadFile` and `convertToGoogleFormat: true`, and gives
+  the person the link of the new Google Sheet. When the Google Workspace
+  connector is not among the assistant's connectors, it says the
+  organisation's administrator has to assign it and sends the `.xlsx`
+  instead.
 
-Rules: a bold, filled, frozen header row; formulas such as `=SUM(...)` instead
-of computed values; dates as `YYYY-MM-DD`, currency with its symbol and two
-decimals, percentages with one decimal; column widths estimated from the
-content; charts (`BarChart`, `LineChart`, `PieChart`) only when asked for; an
-unknown value left blank with a note in a `_notes` column, never invented.
+Rules: one bold, shaded, frozen header row and no title rows above it;
+formulas such as `=SUM(...)` instead of computed values; an Excel number
+format per column for money, shares and dates; columns without a set width
+sized to their content; several sheets when the data has natural groups; no
+charts; an unknown value left blank with a note in a `Note` column, never
+invented. The assistant's container has no Python or LibreOffice, so the
+assistant never builds the file itself, and it never pastes file content or
+base64 in the chat.
 
 ## Requirements
 
-- Python with `openpyxl` wherever the assistant runs code, for `xlsx` and as
-  the first step of `ods`.
-- The `cerase-office-converter` connector for `ods`.
-- A Google Workspace connector exposing `sheets_create` for `gsheet`.
+- The `cerase-office-converter` connector for every format: `create_xlsx`
+  builds the `.xlsx`, `convert_xlsx_to_ods` converts it for `ods`, and
+  `convert_xlsx_to_pdf` converts it to PDF.
+- A Google Workspace connector exposing `uploadFile` for `gsheet`.
 
 ## Files
 
