@@ -49,9 +49,13 @@ What each sheet takes:
 
 - **ods**: `call_recipe("cerase-office-converter.convert_xlsx_to_ods", {"path": "outputs/<name>.xlsx", "output_filename": "<name>.ods"})`
 - **PDF** of the table: `call_recipe("cerase-office-converter.convert_xlsx_to_pdf", {"path": "outputs/<name>.xlsx", "output_filename": "<name>.pdf"})`
-- **gsheet** (Google Sheet): build the .xlsx, then upload it converted:
-  `call_recipe("google-workspace.uploadFile", {"localPath": "outputs/<name>.xlsx", "name": "<title>", "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "convertToGoogleFormat": true})`
-  The answer carries the new file's `Link:`; give the person that link. If the Google Workspace connector is not among your connectors, say in their language that a Google Sheet needs that connector, which the organisation's admin assigns, and send the .xlsx instead.
+- **gsheet** (Google Sheet): build the .xlsx, then upload it converted, with the upload call below, and only when the person asked for a Google file: the upload puts the content in their Drive. The answer carries the new file's `Link:`; give the person that link. If the Google Workspace connector is not among your connectors, say in their language that a Google Sheet needs that connector, which the organisation's admin assigns, and send the .xlsx instead.
+
+The upload that makes the Google Sheet:
+
+```
+call_recipe("google-workspace.uploadFile", {"localPath": "outputs/<name>.xlsx", "name": "<title>", "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "convertToGoogleFormat": true})
+```
 
 These calls are the complete set. Do not invent others.
 
